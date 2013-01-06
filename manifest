@@ -1,0 +1,18 @@
+#
+# this is your module manifest and used by Titanium
+# during compilation, packaging, distribution, etc.
+#
+version: 1.0
+apiversion: 2
+description: Urban Airship GCM module
+author: Mads Møller
+license: MIT
+copyright: Napp
+
+
+# these should not be edited
+name: nappuagcm
+moduleid: dk.napp.uagcm
+guid: 4c0a8635-c7df-43ed-9717-0f172dd42ac4
+platform: android
+minsdk: 2.1.4.GA
