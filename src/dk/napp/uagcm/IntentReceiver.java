@@ -39,8 +39,8 @@ import java.util.Set;
 
 public class IntentReceiver extends BroadcastReceiver {
 
-    private static final String logTag = "Napp-UA-GCM";
-
+    private static final String logTag = "NappuagcmModule";
+    
     @Override
     public void onReceive(Context context, Intent intent) {
         Log.i(logTag, "Received intent: " + intent.toString());
@@ -62,7 +62,8 @@ public class IntentReceiver extends BroadcastReceiver {
 
             Log.i(logTag, "User clicked notification. Message: " + intent.getStringExtra(PushManager.EXTRA_ALERT));
             
-            String className = NappuagcmModule.getInstance().getActivityName();
+            //String className = NappuagcmModule.getInstance().getActivityName();
+            String className = NappuagcmModule.class.getName();
 			Log.i(logTag, "className: "+className);
             
             logPushExtras(intent);
@@ -83,9 +84,9 @@ public class IntentReceiver extends BroadcastReceiver {
         } else if (action.equals(PushManager.ACTION_GCM_DELETED_MESSAGES)) {
             Log.i(logTag, "The GCM service deleted "+intent.getStringExtra(PushManager.EXTRA_GCM_TOTAL_DELETED)+" messages.");
         }
-
+     
     }
-
+     
     /**
      * Log the values sent in the payload's "extra" dictionary.
      * 

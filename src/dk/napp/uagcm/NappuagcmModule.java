@@ -9,6 +9,8 @@
 package dk.napp.uagcm;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 
 import org.appcelerator.kroll.KrollDict;
 import org.appcelerator.kroll.KrollFunction;
@@ -36,12 +38,12 @@ import com.urbanairship.push.PushManager;
 import com.urbanairship.push.PushPreferences;
 
 
-@Kroll.module(name="Nappuagcm", id="dk.napp.uagcm")
+@Kroll.module(name="Nappuagcmmodule", id="dk.napp.uagcm")
 public class NappuagcmModule extends KrollModule
 {
 
 	// Standard Debugging variables
-	private static final String LCAT = "Napp-UA-GCM";
+	private static final String LCAT = "NappuagcmModule";
 	private static final boolean DBG = TiConfig.LOGD;
 	
 	private static NappuagcmModule _THIS;
@@ -52,8 +54,6 @@ public class NappuagcmModule extends KrollModule
 
     private AirshipConfigOptions airshipConfig;
     
-    private String mActivityName;
-    private String mPackageName;
     private ArrayList<Bundle> mMessageList;
     
     IntentFilter boundServiceFilter;
@@ -68,30 +68,29 @@ public class NappuagcmModule extends KrollModule
 		_THIS = this;
 		
 		airshipConfig = null;
-        mActivityName = null;
-        mPackageName = null;
-        
         successCallback = null;
         errorCallback = null;
         messageCallback = null;
 
         mMessageList = new ArrayList<Bundle>();
-        
-        //location
-        boundServiceFilter = new IntentFilter();
-        boundServiceFilter.addAction(UALocationManager.getLocationIntentAction(UALocationManager.ACTION_SUFFIX_LOCATION_SERVICE_BOUND));
-        boundServiceFilter.addAction(UALocationManager.getLocationIntentAction(UALocationManager.ACTION_SUFFIX_LOCATION_SERVICE_UNBOUND));
-
+       
 	}
 	
 	static NappuagcmModule getInstance() {
         return _THIS;
     }
+	
+	@Kroll.onAppCreate
+	public static void onAppCreate(TiApplication app)
+	{
+		Log.d(LCAT, "inside onAppCreate");
+		// put module init code that needs to run when the application is created
+	}
 
 	public void onResume(Activity activity) {
-    	Log.i(LCAT, "onResume: ");
+    	Log.d(LCAT, "onResume");
     	Intent intent = activity.getIntent();
-    	ArrayList messages = intent.getParcelableArrayListExtra("messages");
+    	ArrayList<Bundle> messages = intent.getParcelableArrayListExtra("messages");
     	if(messages!=null) {
     		mMessageList.addAll(messages);
     	}
@@ -110,19 +109,18 @@ public class NappuagcmModule extends KrollModule
 	
 	public void clearNotifications() {    	
     	// Clear all of notification messages.
-    	//String ns = getTiContext().getTiApp().NOTIFICATION_SERVICE;
-    	String ns = getActivity().NOTIFICATION_SERVICE;
-    	
+    	String ns = Context.NOTIFICATION_SERVICE;
 		NotificationManager mNotificationManager = (NotificationManager) getActivity().getSystemService(ns);
 		mNotificationManager.cancelAll();
     }
 	
 	public void registerCallback(boolean valid, String apid) {
+		Log.i(LCAT, "registerCallback");
+		
 		KrollDict dict = new KrollDict();		
 		dict.put("apid", apid);
 		dict.put("success", valid);
 
-    	//Activity myAct = getTiContext().getTiApp().getCurrentActivity();
     	Activity myAct = getActivity();
 		if (valid) {
 			if(myAct!=null && successCallback!=null) {
@@ -137,7 +135,6 @@ public class NappuagcmModule extends KrollModule
 	
     private void pushMessage() {
     	Log.i(LCAT, "Push message: " + mMessageList.size());
-    	//Activity myAct = getTiContext().getTiApp().getCurrentActivity();
     	Activity myAct = getActivity();
     	if(myAct != null) {
     		// Make KrollDict value
@@ -172,47 +169,85 @@ public class NappuagcmModule extends KrollModule
         return airshipConfig;
     }
     
-    private void registerUA() {
-		Log.d(LCAT, "inside registerUA()");
-		
-		
-        //UAirship.takeOff(getTiContext().getTiApp(), getAirshipConfig());
+    private void registerUA(HashMap args) {
+    	
 		UAirship.takeOff(TiApplication.getInstance(), getAirshipConfig());
 
         PushManager.enablePush();
 
 		PushPreferences prefs = PushManager.shared().getPreferences();
 		Logger.info("My Application onCreate - App APID: " + prefs.getPushId());
-
+		
+		
+		// Alias  
+    	if (args.containsKey("alias")) {
+    		Log.d(LCAT, "setting the alias");
+    		PushManager.shared().setAlias( (String)args.get("alias") );
+        }
+    	
+    	// Tags
+    	if (args.containsKey("tags")) {
+    		Object inputTags = args.get("tags");
+    		if (inputTags.getClass().isArray()) {
+	    		Object[] argArray = (Object[])inputTags;
+	    		HashSet<String> tagSet = new HashSet<String>();
+	    		for (int index=0; index < argArray.length; index++) {
+	    			tagSet.add(argArray[index].toString());
+	    		}
+	    		Log.i(LCAT,"[Napp UA GCM] register tags: " + tagSet);
+	    		
+	    		// Update tags on Urban Airship's servers
+		    	PushManager.shared().setTags(tagSet);	
+    		}
+        }
+		
         // Set intent receiver
         PushManager.shared().setIntentReceiver(IntentReceiver.class);
     }
-
-    public String getPackageName() {
-    	return mPackageName;
-    }
-
-    public String getActivityName() {
-    	return mActivityName;
-    }
     
-    public ArrayList getMessageList() {
+    public ArrayList<Bundle> getMessageList() {
     	return mMessageList;
     }
 
     @Kroll.method
-    public void setAirshipConfig(KrollDict param){
-        AirshipConfigOptions options = new AirshipConfigOptions();
-
-        options.inProduction = (Boolean)param.get("inProduction");
-        options.pushServiceEnabled = (Boolean)param.get("pushServiceEnabled");
-        options.gcmSender = (String)param.get("gcmSender");
-        options.transport = (String)param.get("transport");
-        options.productionAppKey = (String)param.get("productionAppKey");
-        options.productionAppSecret = (String)param.get("productionAppSecret");
-        options.developmentAppKey = (String)param.get("developmentAppKey");
-        options.developmentAppSecret = (String)param.get("developmentAppSecret");
-
+    public void setAirshipConfig(HashMap param){
+        //AirshipConfigOptions options = new AirshipConfigOptions();
+        
+    	//load airshipconfig.properties from /platform/android/bin/assets/
+        AirshipConfigOptions options = AirshipConfigOptions.loadDefaultOptions(getActivity());
+        
+        
+        //settings from Ti javascript - override the airshipconfig.properties
+        if (param.containsKey("inProduction")) {
+        	options.inProduction = (Boolean)param.get("inProduction");
+        }
+        if (param.containsKey("pushServiceEnabled")) {
+        	options.pushServiceEnabled = (Boolean)param.get("pushServiceEnabled");
+        }
+        
+        if (param.containsKey("gcmSender")) {
+        	options.gcmSender = (String)param.get("gcmSender");
+        }
+        
+        if (param.containsKey("transport")) {
+        	options.transport = (String)param.get("transport");
+        }
+        
+        if (param.containsKey("productionAppKey")) {
+        	options.productionAppKey = (String)param.get("productionAppKey");
+        }
+        
+        if (param.containsKey("productionAppSecret")) {
+        	options.productionAppSecret = (String)param.get("productionAppSecret");
+        }
+        
+        if (param.containsKey("developmentAppKey")) {
+        	options.developmentAppKey = (String)param.get("developmentAppKey");
+        }
+        
+        if (param.containsKey("developmentAppSecret")) {
+        	options.developmentAppSecret = (String)param.get("developmentAppSecret");
+        }
         airshipConfig = options;
     }
 
@@ -222,23 +257,32 @@ public class NappuagcmModule extends KrollModule
 	}
 	
 	@Kroll.method
-    public void registerForPushNotifications(KrollDict param) {
+    public void registerForPushNotifications(HashMap args) {
 		Log.d(LCAT, "inside registerForPushNotifications()");
-
-        Activity myAct = getActivity();
-        mPackageName = myAct.getComponentName().getPackageName();
-        mActivityName = myAct.getComponentName().getClassName();
-
-		successCallback = (KrollFunction) param.get("success");
-        errorCallback = (KrollFunction) param.get("error");
-        messageCallback = (KrollFunction) param.get("callback");
+		
+		Object callback;
+        if (args.containsKey("success")) {
+			callback = args.get("success");
+			if (callback instanceof KrollFunction) {
+				successCallback = (KrollFunction)callback;
+			}
+		}
+		if (args.containsKey("error")) {
+			callback = args.get("error");
+			if (callback instanceof KrollFunction) {
+				errorCallback = (KrollFunction)callback;
+			}
+		}	
+		if (args.containsKey("callback")) {
+			callback = args.get("callback");
+			if (callback instanceof KrollFunction) {
+				messageCallback = (KrollFunction)callback;
+			}
+		}
         
-        Log.d(LCAT, "package name: " + mPackageName);
-		Log.d(LCAT, "activity name: " + mActivityName);
-
-        setAirshipConfig(param);
-
-        registerUA();
+		//set config and register for push
+        setAirshipConfig(args);
+        registerUA(args);
     }
 	
 	@Kroll.method
@@ -264,15 +308,5 @@ public class NappuagcmModule extends KrollModule
             UALocationManager.disableLocation();
         }	
 	}
-	
-	
-	private BroadcastReceiver boundServiceReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-        	UALocationManager.getLocationIntentAction(UALocationManager.ACTION_SUFFIX_LOCATION_SERVICE_BOUND);
-        }
-    };
-
-
 }
 

@@ -1,39 +1,39 @@
-// This is a test harness for your module
-// You should do something interesting in this harness 
-// to test out the module and to provide instructions 
-// to users on how to use it by example.
 
-
-// open a single window
 var win = Ti.UI.createWindow({
 	backgroundColor:'white'
 });
-var label = Ti.UI.createLabel();
-win.add(label);
 win.open();
 
-// TODO: write your module tests here
-var nappuagcm = require('dk.napp.uagcm');
-Ti.API.info("module is => " + nappuagcm);
-
-label.text = nappuagcm.example();
-
-Ti.API.info("module exampleProp is => " + nappuagcm.exampleProp);
-nappuagcm.exampleProp = "This is a test value";
+var NappUAGCM = require('dk.napp.uagcm');
+Ti.API.info("module is => " + NappUAGCM);
 
 if (Ti.Platform.name == "android") {
-	var proxy = nappuagcm.createExample({
-		message: "Creating an example Proxy",
-		backgroundColor: "red",
-		width: 100,
-		height: 100,
-		top: 100,
-		left: 150
-	});
 
-	proxy.printMessage("Hello world!");
-	proxy.message = "Hi world!.  It's me again.";
-	proxy.printMessage("Hello world!");
-	win.add(proxy);
+	NappUAGCM.registerForPushNotifications({
+		//optional
+		developmentAppKey: 'app-key',
+		developmentAppSecret: 'app-secret',
+		transport: 'gcm',
+		inProduction: false,
+		gcmSender: 'google-project-id',
+		pushServiceEnabled: true,
+		tags: [ 'appcelerator', 'napp' ],
+
+		success: function(e) {
+			Ti.API.debug('NappUAGCM Register succeed: ' + e.apid);
+		},
+		error: function(e) {
+			Ti.API.debug("NappUAGCM Register failed");
+		},
+		callback: function(e) {
+			var message = "";
+			for(var key in e){	
+				message += key+":"+e[key]+"\n";
+			}
+			Ti.API.debug('NappUAGCM push received: ' + message);
+		}
+	});
 }
+
+
 

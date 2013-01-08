@@ -1,9 +1,5 @@
 # Napp Urban Airship Google Cloud Messaging Module
 
-## STATUS
-
-**NOT WORKING**
-
 ## Description
 
 The NappUAGCM Module extends the Appcelerator Titanium Mobile framework with the PUSH messaging for Android.
@@ -22,7 +18,27 @@ Simply add the following lines to your `tiapp.xml` file:
 
 ## Reference
 
-COMING SOON !
+### registerForPushNotifications()
+
+* *productionAppKey* - Your Production App Key
+* *productionAppSecret* - Your Production App Secret
+* *developmentAppKey* - Your Development App Key
+* *developmentAppSecret* - Your Development App Secret
+* *transport* - gcm
+* *inProduction* - Boolean - Are we using development or production keys and UA servers?
+* *gcmSender* - Your Google API Project Number
+* *pushServiceEnabled* - Boolean 
+* *tags* - Array of strings for tagging
+* *alias* - grouping multiple devices 
+
+* *success* - Callback function for successful register of device 
+* *error* - Callback function for error 
+* *callback* - Callback function for receiving push messages 
+
+
+### airshipconfig.properties
+
+Please look at the example provided.
 
 
 ## Changelog
