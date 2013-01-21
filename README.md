@@ -12,7 +12,7 @@ The module is licensed under the MIT license.
 Simply add the following lines to your `tiapp.xml` file:
     
     <modules>
-        <module version="1.0" platform="android">dk.napp.uagcm</module> 
+        <module version="1.1" platform="android">dk.napp.uagcm</module> 
     </modules>
 
 
@@ -20,13 +20,6 @@ Simply add the following lines to your `tiapp.xml` file:
 
 ### registerForPushNotifications()
 
-* *productionAppKey* - Your Production App Key
-* *productionAppSecret* - Your Production App Secret
-* *developmentAppKey* - Your Development App Key
-* *developmentAppSecret* - Your Development App Secret
-* *transport* - gcm
-* *inProduction* - Boolean - Are we using development or production keys and UA servers?
-* *gcmSender* - Your Google API Project Number
 * *pushServiceEnabled* - Boolean 
 * *tags* - Array of strings for tagging
 * *alias* - grouping multiple devices 
@@ -42,6 +35,11 @@ Please look at the example provided.
 
 
 ## Changelog
+
+**v1.1**  
+Bugfixes. The module is far more stable now. 
+* FIXED. Bug: You can only call UAirship.takeOff once.
+* FIXED. Bug: Multiple apps with same module.
 
 **v1.0**  
 GCM with Urban Airship API v. 2.0.4 

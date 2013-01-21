@@ -23,7 +23,6 @@ import org.appcelerator.kroll.common.TiConfig;
 
 import android.app.Activity;
 import android.app.NotificationManager;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -37,276 +36,271 @@ import com.urbanairship.location.UALocationManager;
 import com.urbanairship.push.PushManager;
 import com.urbanairship.push.PushPreferences;
 
-
-@Kroll.module(name="Nappuagcmmodule", id="dk.napp.uagcm")
-public class NappuagcmModule extends KrollModule
-{
+@Kroll.module(name = "Nappuagcmmodule", id = "dk.napp.uagcm")
+public class NappuagcmModule extends KrollModule {
 
 	// Standard Debugging variables
 	private static final String LCAT = "NappuagcmModule";
-	private static final boolean DBG = TiConfig.LOGD;
 	
 	private static NappuagcmModule _THIS;
-	
+
 	private KrollFunction successCallback;
-    private KrollFunction errorCallback;
-    private KrollFunction messageCallback;
+	private KrollFunction errorCallback;
+	private KrollFunction messageCallback;
 
-    private AirshipConfigOptions airshipConfig;
-    
-    private ArrayList<Bundle> mMessageList;
-    
-    IntentFilter boundServiceFilter;
+	private AirshipConfigOptions airshipConfig;
 
+	private ArrayList<Bundle> mMessageList;
+
+	IntentFilter boundServiceFilter;
 
 	// You can define constants with @Kroll.constant, for example:
 	// @Kroll.constant public static final String EXTERNAL_NAME = value;
-	
-	public NappuagcmModule()
-	{
+
+	public NappuagcmModule() {
 		super();
 		_THIS = this;
-		
-		airshipConfig = null;
-        successCallback = null;
-        errorCallback = null;
-        messageCallback = null;
 
-        mMessageList = new ArrayList<Bundle>();
-       
+		airshipConfig = null;
+		successCallback = null;
+		errorCallback = null;
+		messageCallback = null;
+
+		mMessageList = new ArrayList<Bundle>();
+
 	}
-	
+
 	static NappuagcmModule getInstance() {
-        return _THIS;
-    }
-	
+		return _THIS;
+	}
+
 	@Kroll.onAppCreate
-	public static void onAppCreate(TiApplication app)
-	{
-		Log.d(LCAT, "inside onAppCreate");
-		// put module init code that needs to run when the application is created
+	public static void onAppCreate(TiApplication app) {
+		Log.d(LCAT, "inside onAppCreate - takeoff");
+		
+		//DOCS: https://docs.urbanairship.com/android-lib/reference/com/urbanairship/UAirship.html
+		
+		// load airshipconfig.properties from /platform/android/bin/assets/
+		UAirship.takeOff(TiApplication.getInstance());
 	}
 
 	public void onResume(Activity activity) {
-    	Log.d(LCAT, "onResume");
-    	Intent intent = activity.getIntent();
-    	ArrayList<Bundle> messages = intent.getParcelableArrayListExtra("messages");
-    	if(messages!=null) {
-    		mMessageList.addAll(messages);
-    	}
-    	Bundle opened = intent.getBundleExtra("opened");
+		Log.d(LCAT, "onResume");
+		Intent intent = activity.getIntent();
+		ArrayList<Bundle> messages = intent
+				.getParcelableArrayListExtra("messages");
+		if (messages != null) {
+			mMessageList.addAll(messages);
+		}
+		Bundle opened = intent.getBundleExtra("opened");
 
-    	Log.i(LCAT, "total messages: "+mMessageList.size());
-		if(messages!=null) {
-    		Log.i(LCAT, "received messages: "+messages.size());
-    	}
-    	if(opened!=null) {
-    		Log.i(LCAT, "received opened: "+opened.getString(PushManager.EXTRA_ALERT));	
-    	}
-    	pushMessage();
+		Log.i(LCAT, "total messages: " + mMessageList.size());
+		if (messages != null) {
+			Log.i(LCAT, "received messages: " + messages.size());
+		}
+		if (opened != null) {
+			Log.i(LCAT, "received opened: " + opened.getString(PushManager.EXTRA_ALERT));
+		}
+		pushMessage();
 	}
-	
-	
-	public void clearNotifications() {    	
-    	// Clear all of notification messages.
-    	String ns = Context.NOTIFICATION_SERVICE;
+
+	public void clearNotifications() {
+		// Clear all of notification messages.
+		String ns = Context.NOTIFICATION_SERVICE;
 		NotificationManager mNotificationManager = (NotificationManager) getActivity().getSystemService(ns);
 		mNotificationManager.cancelAll();
-    }
-	
+	}
+
 	public void registerCallback(boolean valid, String apid) {
 		Log.i(LCAT, "registerCallback");
-		
-		KrollDict dict = new KrollDict();		
+		KrollDict dict = new KrollDict();
 		dict.put("apid", apid);
 		dict.put("success", valid);
 
-    	Activity myAct = getActivity();
+		Activity myAct = getActivity();
 		if (valid) {
-			if(myAct!=null && successCallback!=null) {
+			if (myAct != null && successCallback != null) {
 				successCallback.callAsync(getKrollObject(), dict);
 			}
 		} else {
-			if(myAct!=null && errorCallback!=null) {
+			if (myAct != null && errorCallback != null) {
 				errorCallback.callAsync(getKrollObject(), dict);
 			}
 		}
 	}
-	
-    private void pushMessage() {
-    	Log.i(LCAT, "Push message: " + mMessageList.size());
-    	Activity myAct = getActivity();
-    	if(myAct != null) {
-    		// Make KrollDict value
-    		int size = mMessageList.size();
-    		KrollDict dict = new KrollDict();
-    		for (int i=0; i<size; i++) {
-    			Bundle bundle = mMessageList.get(i);
-    			int id = bundle.getInt(PushManager.EXTRA_NOTIFICATION_ID);
-    			String alert = bundle.getString(PushManager.EXTRA_ALERT);
-    			Log.i(LCAT, "message["+id+"] "+alert);
-    			dict.put(Integer.toString(id), alert);
-    		}
-    		if(size>0 && messageCallback != null) {
-    			messageCallback.callAsync(getKrollObject(), dict);
+
+	private void pushMessage() {
+		Log.i(LCAT, "Push message: " + mMessageList.size());
+		Activity myAct = getActivity();
+		if (myAct != null) {
+			// Make KrollDict value
+			int size = mMessageList.size();
+			KrollDict dict = new KrollDict();
+			for (int i = 0; i < size; i++) {
+				Bundle bundle = mMessageList.get(i);
+				int id = bundle.getInt(PushManager.EXTRA_NOTIFICATION_ID);
+				String alert = bundle.getString(PushManager.EXTRA_ALERT);
+				Log.i(LCAT, "message[" + id + "] " + alert);
+				dict.put(Integer.toString(id), alert);
 			}
-    		mMessageList.clear();
-	    	clearNotifications();
-    	}
-    }
-    
-    public void sendMessage(Bundle bundle) {
-    	Log.i(LCAT, "Message from intent receiver.");
-    	
-    	// Put message to list
-    	mMessageList.add(bundle);
-    	
-    	// Push message
+			if (size > 0 && messageCallback != null) {
+				messageCallback.callAsync(getKrollObject(), dict);
+			}
+			mMessageList.clear();
+			clearNotifications();
+		}
+	}
+
+	public void sendMessage(Bundle bundle) {
+		Log.i(LCAT, "Message from intent receiver.");
+
+		// Put message to list
+		mMessageList.add(bundle);
+
+		// Push message
 		pushMessage();
-    }
+	}
 
-    private AirshipConfigOptions getAirshipConfig() {
-        return airshipConfig;
-    }
-    
-    private void registerUA(HashMap args) {
-    	
-		UAirship.takeOff(TiApplication.getInstance(), getAirshipConfig());
+	private AirshipConfigOptions getAirshipConfig() {
+		return airshipConfig;
+	}
 
-        PushManager.enablePush();
+	private void registerUA(HashMap args) {
+		
+		PushManager.enablePush();
 
 		PushPreferences prefs = PushManager.shared().getPreferences();
 		Logger.info("My Application onCreate - App APID: " + prefs.getPushId());
-		
-		
-		// Alias  
-    	if (args.containsKey("alias")) {
-    		Log.d(LCAT, "setting the alias");
-    		PushManager.shared().setAlias( (String)args.get("alias") );
-        }
-    	
-    	// Tags
-    	if (args.containsKey("tags")) {
-    		Object inputTags = args.get("tags");
-    		if (inputTags.getClass().isArray()) {
-	    		Object[] argArray = (Object[])inputTags;
-	    		HashSet<String> tagSet = new HashSet<String>();
-	    		for (int index=0; index < argArray.length; index++) {
-	    			tagSet.add(argArray[index].toString());
-	    		}
-	    		Log.i(LCAT,"[Napp UA GCM] register tags: " + tagSet);
-	    		
-	    		// Update tags on Urban Airship's servers
-		    	PushManager.shared().setTags(tagSet);	
-    		}
-        }
-		
-        // Set intent receiver
-        PushManager.shared().setIntentReceiver(IntentReceiver.class);
-    }
-    
-    public ArrayList<Bundle> getMessageList() {
-    	return mMessageList;
-    }
 
-    @Kroll.method
-    public void setAirshipConfig(HashMap param){
-        //AirshipConfigOptions options = new AirshipConfigOptions();
-        
-    	//load airshipconfig.properties from /platform/android/bin/assets/
-        AirshipConfigOptions options = AirshipConfigOptions.loadDefaultOptions(getActivity());
-        
-        
-        //settings from Ti javascript - override the airshipconfig.properties
-        if (param.containsKey("inProduction")) {
-        	options.inProduction = (Boolean)param.get("inProduction");
-        }
-        if (param.containsKey("pushServiceEnabled")) {
-        	options.pushServiceEnabled = (Boolean)param.get("pushServiceEnabled");
-        }
-        
-        if (param.containsKey("gcmSender")) {
-        	options.gcmSender = (String)param.get("gcmSender");
-        }
-        
-        if (param.containsKey("transport")) {
-        	options.transport = (String)param.get("transport");
-        }
-        
-        if (param.containsKey("productionAppKey")) {
-        	options.productionAppKey = (String)param.get("productionAppKey");
-        }
-        
-        if (param.containsKey("productionAppSecret")) {
-        	options.productionAppSecret = (String)param.get("productionAppSecret");
-        }
-        
-        if (param.containsKey("developmentAppKey")) {
-        	options.developmentAppKey = (String)param.get("developmentAppKey");
-        }
-        
-        if (param.containsKey("developmentAppSecret")) {
-        	options.developmentAppSecret = (String)param.get("developmentAppSecret");
-        }
-        airshipConfig = options;
-    }
+		// Alias
+		if (args.containsKey("alias")) {
+			Log.d(LCAT, "setting the alias");
+			PushManager.shared().setAlias((String) args.get("alias"));
+		}
+
+		// Tags
+		if (args.containsKey("tags")) {
+			Object inputTags = args.get("tags");
+			if (inputTags.getClass().isArray()) {
+				Object[] argArray = (Object[]) inputTags;
+				HashSet<String> tagSet = new HashSet<String>();
+				for (int index = 0; index < argArray.length; index++) {
+					tagSet.add(argArray[index].toString());
+				}
+				Log.i(LCAT, "[Napp UA GCM] register tags: " + tagSet);
+
+				// Update tags on Urban Airship's servers
+				PushManager.shared().setTags(tagSet);
+			}
+		}
+
+		// Set intent receiver
+		PushManager.shared().setIntentReceiver(IntentReceiver.class);
+	}
+
+	public ArrayList<Bundle> getMessageList() {
+		return mMessageList;
+	}
+
+	@Kroll.method
+	public void setAirshipConfig(HashMap param) {
+		// AirshipConfigOptions options = new AirshipConfigOptions();
+
+		// load airshipconfig.properties from /platform/android/bin/assets/
+		AirshipConfigOptions options = AirshipConfigOptions.loadDefaultOptions(getActivity());
+
+		// settings from Ti javascript - override the airshipconfig.properties
+		if (param.containsKey("inProduction")) {
+			options.inProduction = (Boolean) param.get("inProduction");
+		}
+		if (param.containsKey("pushServiceEnabled")) {
+			options.pushServiceEnabled = (Boolean) param
+					.get("pushServiceEnabled");
+		}
+
+		if (param.containsKey("gcmSender")) {
+			options.gcmSender = (String) param.get("gcmSender");
+		}
+
+		if (param.containsKey("transport")) {
+			options.transport = (String) param.get("transport");
+		}
+
+		if (param.containsKey("productionAppKey")) {
+			options.productionAppKey = (String) param.get("productionAppKey");
+		}
+
+		if (param.containsKey("productionAppSecret")) {
+			options.productionAppSecret = (String) param
+					.get("productionAppSecret");
+		}
+
+		if (param.containsKey("developmentAppKey")) {
+			options.developmentAppKey = (String) param.get("developmentAppKey");
+		}
+
+		if (param.containsKey("developmentAppSecret")) {
+			options.developmentAppSecret = (String) param
+					.get("developmentAppSecret");
+		}
+		airshipConfig = options;
+	}
 
 	@Kroll.method
 	public String getApid() {
 		return PushManager.shared().getAPID();
 	}
-	
+
 	@Kroll.method
-    public void registerForPushNotifications(HashMap args) {
+	public void registerForPushNotifications(HashMap args) {
 		Log.d(LCAT, "inside registerForPushNotifications()");
-		
+
 		Object callback;
-        if (args.containsKey("success")) {
+		if (args.containsKey("success")) {
 			callback = args.get("success");
 			if (callback instanceof KrollFunction) {
-				successCallback = (KrollFunction)callback;
+				successCallback = (KrollFunction) callback;
 			}
 		}
 		if (args.containsKey("error")) {
 			callback = args.get("error");
 			if (callback instanceof KrollFunction) {
-				errorCallback = (KrollFunction)callback;
+				errorCallback = (KrollFunction) callback;
 			}
-		}	
+		}
 		if (args.containsKey("callback")) {
 			callback = args.get("callback");
 			if (callback instanceof KrollFunction) {
-				messageCallback = (KrollFunction)callback;
+				messageCallback = (KrollFunction) callback;
 			}
 		}
-        
-		//set config and register for push
-        setAirshipConfig(args);
-        registerUA(args);
-    }
-	
-	@Kroll.method
-    public void enableLocation(KrollDict param) {
-		Log.d(LCAT, "inside enableLocation()");
-		
-		boolean isLocationEnabledInActivity = param.optBoolean("location", false);
-        boolean isBackgroundLocationEnabledInActivity = param.optBoolean("backgroundLocation", false);
 
-        if (isLocationEnabledInActivity) {
-            UALocationManager.enableLocation();
-            if (isBackgroundLocationEnabledInActivity) {
-                UALocationManager.enableBackgroundLocation();
-            } else {
-                UALocationManager.disableBackgroundLocation();
-            }
-        } else {
-        	if (isBackgroundLocationEnabledInActivity) {
-                UALocationManager.enableBackgroundLocation();
-            } else {
-                UALocationManager.disableBackgroundLocation();
-            }
-            UALocationManager.disableLocation();
-        }	
+		// set config and register for push
+		setAirshipConfig(args);
+		registerUA(args);
+	}
+
+	@Kroll.method
+	public void enableLocation(KrollDict param) {
+		Log.d(LCAT, "inside enableLocation()");
+
+		boolean isLocationEnabledInActivity = param.optBoolean("location",false);
+		boolean isBackgroundLocationEnabledInActivity = param.optBoolean("backgroundLocation", false);
+
+		if (isLocationEnabledInActivity) {
+			UALocationManager.enableLocation();
+			if (isBackgroundLocationEnabledInActivity) {
+				UALocationManager.enableBackgroundLocation();
+			} else {
+				UALocationManager.disableBackgroundLocation();
+			}
+		} else {
+			if (isBackgroundLocationEnabledInActivity) {
+				UALocationManager.enableBackgroundLocation();
+			} else {
+				UALocationManager.disableBackgroundLocation();
+			}
+			UALocationManager.disableLocation();
+		}
 	}
 }
-

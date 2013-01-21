@@ -1,21 +1,11 @@
-
-var win = Ti.UI.createWindow({
-	backgroundColor:'white'
-});
+var win = Ti.UI.createWindow({backgroundColor:'white'});
 win.open();
 
 var NappUAGCM = require('dk.napp.uagcm');
 Ti.API.info("module is => " + NappUAGCM);
 
 if (Ti.Platform.name == "android") {
-
 	NappUAGCM.registerForPushNotifications({
-		//optional
-		developmentAppKey: 'app-key',
-		developmentAppSecret: 'app-secret',
-		transport: 'gcm',
-		inProduction: false,
-		gcmSender: 'google-project-id',
 		pushServiceEnabled: true,
 		tags: [ 'appcelerator', 'napp' ],
 
@@ -34,6 +24,3 @@ if (Ti.Platform.name == "android") {
 		}
 	});
 }
-
-
-
